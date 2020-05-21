@@ -5,8 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/99designs/gqlgen/handler"
-	"github.com/vektah/gqlparser/gqlerror"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/neighborly/go-errors"
 	"github.com/nrfta/go-log"
@@ -25,8 +24,8 @@ var (
 
 type ErrorReporterFunc func(ctx context.Context, err error)
 
-func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) handler.Option {
-	return handler.ErrorPresenter(func(ctx context.Context, err error) *gqlerror.Error {
+func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) graphql.ErrorPresenterFunc {
+	return func(ctx context.Context, err error) *gqlerror.Error {
 		e := createCustomError(err)
 		reportAndLogError(reporterFunc, ctx, e)
 
@@ -42,12 +41,12 @@ func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) handler.Option 
 		}
 
 		return graphql.DefaultErrorPresenter(ctx, err)
-	})
+	}
 }
 
 // ConfigureRecoverFunc will better handle panic errors and recover from it
-func ConfigureRecoverFunc() handler.Option {
-	return handler.RecoverFunc(func(ctx context.Context, errInterface interface{}) error {
+func ConfigureRecoverFunc() graphql.RecoverFunc {
+	return func(ctx context.Context, errInterface interface{}) error {
 		var err error
 		switch e := errInterface.(type) {
 		case error:
@@ -57,7 +56,7 @@ func ConfigureRecoverFunc() handler.Option {
 			err = errors.Newf("%+v", e)
 		}
 		return err
-	})
+	}
 }
 
 func transformToGraphqlErrorCode(code errors.ErrorCode) string {
