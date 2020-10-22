@@ -3,12 +3,11 @@ package errorhandling
 import (
 	"context"
 	"database/sql"
-
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/vektah/gqlparser/v2/gqlerror"
-
 	"github.com/neighborly/go-errors"
 	"github.com/nrfta/go-log"
+	"github.com/vektah/gqlparser/v2/gqlerror"
+	"strings"
 )
 
 var (
@@ -27,6 +26,19 @@ type ErrorReporterFunc func(ctx context.Context, err error)
 func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) graphql.ErrorPresenterFunc {
 	return func(ctx context.Context, err error) *gqlerror.Error {
 		e := createCustomError(err)
+
+		// HACK: errors from directives get wrapped in an unexported field. Only message gets copied to the outer error
+		// so we encode info in the message and reify the errors.customError here.
+		if gqlerr, ok := err.(*gqlerror.Error); ok {
+			msgParts := strings.Split(gqlerr.Message, ";")
+			if len(msgParts) == 2 {
+				errCode := errors.ErrorCode(msgParts[0])
+				if _, ok = errorCodeMappings[errCode]; ok {
+					e = errors.WithDisplayMessage(errCode.New(gqlerr.Message), msgParts[1])
+				}
+			}
+		}
+
 		reportAndLogError(reporterFunc, ctx, e)
 
 		message := errors.DisplayMessage(e)
