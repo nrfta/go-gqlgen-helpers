@@ -3,11 +3,12 @@ package errorhandling
 import (
 	"context"
 	"database/sql"
+	goErrors "errors"
+
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/neighborly/go-errors"
 	"github.com/nrfta/go-log"
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	"strings"
 )
 
 var (
@@ -24,35 +25,22 @@ var (
 type ErrorReporterFunc func(ctx context.Context, err error)
 
 func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) graphql.ErrorPresenterFunc {
-	return func(ctx context.Context, err error) *gqlerror.Error {
-		e := createCustomError(err)
+	return func(ctx context.Context, e error) *gqlerror.Error {
+		err := graphql.DefaultErrorPresenter(ctx, e)
+		customError := createCustomError(err)
 
-		// HACK: errors from directives get wrapped in an unexported field. Only message gets copied to the outer error
-		// so we encode info in the message and reify the errors.customError here.
-		if gqlerr, ok := err.(*gqlerror.Error); ok {
-			msgParts := strings.Split(gqlerr.Message, ";")
-			if len(msgParts) == 2 {
-				errCode := errors.ErrorCode(msgParts[0])
-				if _, ok = errorCodeMappings[errCode]; ok {
-					e = errors.WithDisplayMessage(errCode.New(gqlerr.Message), msgParts[1])
-				}
-			}
+		var gqlerr *gqlerror.Error
+		if goErrors.As(e, &gqlerr) {
+			customError = createCustomError(gqlerr.Unwrap())
 		}
 
-		reportAndLogError(reporterFunc, ctx, e)
+		reportAndLogError(reporterFunc, ctx, customError)
 
-		message := errors.DisplayMessage(e)
-		code := errors.Code(e)
-
-		// convert the error to a graphQL error
-		err = &gqlerror.Error{
-			Message: message,
-			Extensions: map[string]interface{}{
-				"code": transformToGraphqlErrorCode(code),
-			},
+		err.Message = errors.DisplayMessage(customError)
+		err.Extensions = map[string]interface{}{
+			"code": transformToGraphqlErrorCode(errors.Code(customError)),
 		}
-
-		return graphql.DefaultErrorPresenter(ctx, err)
+		return err
 	}
 }
 
