@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	goErrors "errors"
+	"runtime"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/neighborly/go-errors"
@@ -26,6 +27,10 @@ type ErrorReporterFunc func(ctx context.Context, err error)
 
 func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) graphql.ErrorPresenterFunc {
 	return func(ctx context.Context, e error) *gqlerror.Error {
+		if _, ok := e.(*runtime.TypeAssertionError); ok {
+			return graphql.DefaultErrorPresenter(ctx, e)
+		}
+
 		err := graphql.DefaultErrorPresenter(ctx, e)
 		customError := createCustomError(err)
 
@@ -34,6 +39,9 @@ func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) graphql.ErrorPr
 			customError = createCustomError(gqlerr.Unwrap())
 		}
 
+		if customError == nil {
+			return err
+		}
 		reportAndLogError(reporterFunc, ctx, customError)
 
 		err.Message = errors.DisplayMessage(customError)
