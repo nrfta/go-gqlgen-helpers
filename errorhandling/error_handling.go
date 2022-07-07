@@ -5,12 +5,16 @@ import (
 	"database/sql"
 	goErrors "errors"
 	"runtime"
+	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/neighborly/go-errors"
 	"github.com/nrfta/go-log"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
+
+var unauthenticatedErrorMsg = "no user info found"
+var permissionDeniedErrorMsg = "current user ID is not authorized to access the resource"
 
 var (
 	errorCodeMappings = map[errors.ErrorCode]string{
@@ -54,7 +58,7 @@ func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) graphql.ErrorPr
 
 // ConfigureRecoverFunc will better handle panic errors and recover from it
 func ConfigureRecoverFunc() graphql.RecoverFunc {
-	return func(ctx context.Context, errInterface interface{}) error {
+	return func(_ context.Context, errInterface interface{}) error {
 		var err error
 		switch e := errInterface.(type) {
 		case error:
@@ -93,6 +97,14 @@ func createCustomError(err error) error {
 			errors.NotFound.Wrap(err, "record not found"),
 			"Record Not Found",
 		)
+	}
+
+	// Handles gqlgen entity resolver incorrectly replacing the error obj
+	if strings.Contains(err.Error(), permissionDeniedErrorMsg) {
+		err = errors.WithDisplayMessage(errors.PermissionDenied.New(permissionDeniedErrorMsg), permissionDeniedErrorMsg)
+	}
+	if strings.Contains(err.Error(), unauthenticatedErrorMsg) {
+		err = errors.WithDisplayMessage(errors.Unauthenticated.New(unauthenticatedErrorMsg), unauthenticatedErrorMsg)
 	}
 
 	return err
