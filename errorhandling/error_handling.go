@@ -36,11 +36,13 @@ func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) graphql.ErrorPr
 		}
 
 		err := graphql.DefaultErrorPresenter(ctx, e)
-		customError := createCustomError(err)
+		var customError error
 
 		var gqlerr *gqlerror.Error
 		if goErrors.As(e, &gqlerr) {
 			customError = createCustomError(gqlerr.Unwrap())
+		} else {
+			customError = createCustomError(err)
 		}
 
 		if customError == nil {
@@ -103,12 +105,9 @@ func createCustomError(err error) error {
 		return err
 	}
 
-	// Handles gqlgen entity resolver incorrectly replacing the error obj
-	if strings.Contains(err.Error(), permissionDeniedErrorMsg) {
-		return errors.WithDisplayMessage(errors.PermissionDenied.New(permissionDeniedErrorMsg), permissionDeniedErrorMsg)
-	}
-	if strings.Contains(err.Error(), unauthenticatedErrorMsg) {
-		return errors.WithDisplayMessage(errors.Unauthenticated.New(unauthenticatedErrorMsg), unauthenticatedErrorMsg)
+	// Handles gqlgen entity resolver wrapping the original error
+	if strings.Contains(err.Error(), permissionDeniedErrorMsg) || strings.Contains(err.Error(), unauthenticatedErrorMsg) {
+		return goErrors.Unwrap(err)
 	}
 
 	return err
