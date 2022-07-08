@@ -99,12 +99,16 @@ func createCustomError(err error) error {
 		)
 	}
 
+	if errors.Code(err) != errors.InternalError {
+		return err
+	}
+
 	// Handles gqlgen entity resolver incorrectly replacing the error obj
 	if strings.Contains(err.Error(), permissionDeniedErrorMsg) {
-		err = errors.WithDisplayMessage(errors.PermissionDenied.New(permissionDeniedErrorMsg), permissionDeniedErrorMsg)
+		return errors.WithDisplayMessage(errors.PermissionDenied.New(permissionDeniedErrorMsg), permissionDeniedErrorMsg)
 	}
 	if strings.Contains(err.Error(), unauthenticatedErrorMsg) {
-		err = errors.WithDisplayMessage(errors.Unauthenticated.New(unauthenticatedErrorMsg), unauthenticatedErrorMsg)
+		return errors.WithDisplayMessage(errors.Unauthenticated.New(unauthenticatedErrorMsg), unauthenticatedErrorMsg)
 	}
 
 	return err
