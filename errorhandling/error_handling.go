@@ -5,16 +5,12 @@ import (
 	"database/sql"
 	goErrors "errors"
 	"runtime"
-	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/neighborly/go-errors"
 	"github.com/nrfta/go-log"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
-
-var unauthenticatedErrorMsg = "no user info found"
-var permissionDeniedErrorMsg = "current user ID is not authorized to access the resource"
 
 var (
 	errorCodeMappings = map[errors.ErrorCode]string{
@@ -106,8 +102,8 @@ func createCustomError(err error) error {
 	}
 
 	// Handles gqlgen entity resolver wrapping the original error
-	if strings.Contains(err.Error(), permissionDeniedErrorMsg) || strings.Contains(err.Error(), unauthenticatedErrorMsg) {
-		return goErrors.Unwrap(err)
+	if unwrapped := goErrors.Unwrap(err); unwrapped != nil {
+		return unwrapped
 	}
 
 	return err
