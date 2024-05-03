@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	goErrors "errors"
+	"log/slog"
 	"runtime"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -85,6 +86,15 @@ func reportAndLogError(reportError ErrorReporterFunc, ctx context.Context, err e
 		stack := errors.StackTrace(err)
 		// only log errors that we don't control
 		log.RequestLogger(ctx).Errorf("%s: %+v%+v", errors.InternalError, err.Error(), stack)
+		slog.ErrorContext(
+			ctx,
+			"Internal Error Occurred",
+			slog.Group(
+				"error",
+				slog.String("message", err.Error()),
+				slog.Any("stackTrace", stack),
+			),
+		)
 	}
 }
 
