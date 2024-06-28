@@ -6,7 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.41
 	github.com/neighborly/go-errors v0.2.0
 	github.com/nrfta/go-log v0.9.1
-	github.com/vektah/gqlparser/v2 v2.5.10
+	github.com/vektah/gqlparser/v2 v2.5.14
 )
 
 require (
