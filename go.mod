@@ -1,6 +1,7 @@
 module github.com/nrfta/go-gqlgen-helpers
 
 go 1.21
+toolchain go1.24.1
 
 require (
 	github.com/99designs/gqlgen v0.17.41
@@ -15,7 +16,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/sosodev/duration v1.2.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 )
