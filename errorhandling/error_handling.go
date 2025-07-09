@@ -15,12 +15,13 @@ import (
 
 var (
 	errorCodeMappings = map[errors.ErrorCode]string{
-		errors.InternalError:    "INTERNAL_ERROR",
-		errors.NotFound:         "NOT_FOUND",
-		errors.InvalidArgument:  "INVALID_ARGUMENT",
-		errors.Unauthenticated:  "UNAUTHENTICATED",
-		errors.PermissionDenied: "PERMISSION_DENIED",
-		errors.Unknown:          "UNKNOWN",
+		errors.InternalError:        "INTERNAL_ERROR",
+		errors.NotFound:             "NOT_FOUND",
+		errors.InvalidArgument:      "INVALID_ARGUMENT",
+		errors.Unauthenticated:      "UNAUTHENTICATED",
+		errors.PermissionDenied:     "PERMISSION_DENIED",
+		errors.UnprocessableContent: "UNPROCESSABLE_CONTENT",
+		errors.Unknown:              "UNKNOWN",
 	}
 )
 
@@ -48,7 +49,7 @@ func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) graphql.ErrorPr
 		reportAndLogError(reporterFunc, ctx, customError)
 
 		err.Message = errors.DisplayMessage(customError)
-		err.Extensions = map[string]interface{}{
+		err.Extensions = map[string]any{
 			"code": transformToGraphqlErrorCode(errors.Code(customError)),
 		}
 		return err
@@ -57,7 +58,7 @@ func ConfigureErrorPresenterFunc(reporterFunc ErrorReporterFunc) graphql.ErrorPr
 
 // ConfigureRecoverFunc will better handle panic errors and recover from it
 func ConfigureRecoverFunc() graphql.RecoverFunc {
-	return func(_ context.Context, errInterface interface{}) error {
+	return func(_ context.Context, errInterface any) error {
 		var err error
 		switch e := errInterface.(type) {
 		case error:
